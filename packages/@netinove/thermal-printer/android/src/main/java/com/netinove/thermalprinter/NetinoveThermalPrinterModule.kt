@@ -7,7 +7,5 @@ class NetinoveThermalPrinterModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("NetinoveThermalPrinter")
 
-    AsyncFunction("setValueAsync") { value: String ->
-    }
   }
 }
