@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@netinove/thermal-printer": ["../src/index"],
+      "@netinove/thermal-printer/*": ["../src/*"]
+    }
+  }
+}
