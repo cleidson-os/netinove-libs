@@ -16,3 +16,18 @@
 ### 🐛 Bug fixes
 
 ### 💡 Others
+
+## 0.2.0 - 2026-07-29
+
+### 🎉 New features
+
+- Added event-based Bluetooth Classic discovery with explicit scan permissions and cancellation.
+- Added automatic pairing before connecting to an unpaired device.
+
+### 🐛 Bug fixes
+
+- Fixed discovery broadcasts on Android 13 and newer.
+
+### 💡 Others
+
+- Updated the example application and package documentation for discovery and pairing.

@@ -1,13 +1,16 @@
 import {
+  addScanDeviceListener,
+  addScanFinishedListener,
   connect,
   disconnect,
   getBluetoothState,
-  getBondedPrinters,
-  requestBluetoothPermissions,
+  requestBluetoothScanPermissions,
+  startScan,
+  stopScan,
   writeText,
   type BluetoothPrinter,
 } from '@netinove/thermal-printer';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -26,14 +29,41 @@ function errorMessage(error: unknown): string {
 export default function App() {
   const [printers, setPrinters] = useState<BluetoothPrinter[]>([]);
   const [connectedAddress, setConnectedAddress] = useState<string>();
-  const [status, setStatus] = useState('Pronto para buscar dispositivos pareados.');
+  const [status, setStatus] = useState('Pronto para buscar dispositivos próximos.');
   const [text, setText] = useState('Teste de impressao Bluetooth\nValor: R$ 10,00');
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+
+  useEffect(() => {
+    const deviceSubscription = addScanDeviceListener((device) => {
+      setPrinters((current) => {
+        const found = current.some((item) => item.address === device.address);
+        return found
+          ? current.map((item) => (item.address === device.address ? device : item))
+          : [...current, device];
+      });
+    });
+    const finishedSubscription = addScanFinishedListener(({ reason }) => {
+      setScanning(false);
+      setStatus(
+        reason === 'timeout'
+          ? 'Busca encerrada por tempo limite.'
+          : reason === 'cancelled'
+            ? 'Busca cancelada.'
+            : 'Busca concluída.'
+      );
+    });
+
+    return () => {
+      deviceSubscription.remove();
+      finishedSubscription.remove();
+      void stopScan().catch(() => undefined);
+    };
+  }, []);
 
   async function loadPrinters() {
-    setLoading(true);
     try {
-      const granted = await requestBluetoothPermissions();
+      const granted = await requestBluetoothScanPermissions();
       if (!granted) {
         setStatus('Permissão Bluetooth não concedida.');
         return;
@@ -49,26 +79,40 @@ export default function App() {
         return;
       }
 
-      const bondedPrinters = await getBondedPrinters();
-      setPrinters(bondedPrinters);
-      setStatus(
-        bondedPrinters.length > 0
-          ? `${bondedPrinters.length} dispositivo(s) pareado(s).`
-          : 'Nenhum dispositivo pareado nas configurações do Android.'
-      );
+      setPrinters([]);
+      setScanning(true);
+      setStatus('Buscando dispositivos próximos...');
+      await startScan();
     } catch (error) {
+      setScanning(false);
       setStatus(errorMessage(error));
-    } finally {
-      setLoading(false);
+    }
+  }
+
+  async function handleStopScan() {
+    try {
+      await stopScan();
+    } catch (error) {
+      setScanning(false);
+      setStatus(errorMessage(error));
     }
   }
 
   async function handleConnect(printer: BluetoothPrinter) {
     setLoading(true);
-    setStatus(`Conectando a ${printer.name}...`);
+    setStatus(
+      printer.bonded
+        ? `Conectando a ${printer.name}...`
+        : `Solicitando pareamento com ${printer.name}...`
+    );
     try {
       const connection = await connect(printer.address);
       setConnectedAddress(connection.address ?? undefined);
+      setPrinters((current) =>
+        current.map((item) =>
+          item.address === printer.address ? { ...item, bonded: true } : item
+        )
+      );
       setStatus(`${printer.name} conectada.`);
     } catch (error) {
       setStatus(errorMessage(error));
@@ -114,13 +158,23 @@ export default function App() {
         <Text style={styles.title}>@netinove/thermal-printer</Text>
         <Text style={styles.status}>{status}</Text>
 
-        <Pressable disabled={loading} onPress={loadPrinters} style={styles.primaryButton}>
-          {loading ? (
+        <Pressable
+          disabled={loading || scanning}
+          onPress={loadPrinters}
+          style={[styles.primaryButton, (loading || scanning) && styles.disabledButton]}
+        >
+          {scanning ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.primaryButtonText}>Buscar dispositivos pareados</Text>
+            <Text style={styles.primaryButtonText}>Buscar dispositivos próximos</Text>
           )}
         </Pressable>
+
+        {scanning && (
+          <Pressable onPress={handleStopScan} style={styles.stopScanButton}>
+            <Text style={styles.primaryButtonText}>Parar busca</Text>
+          </Pressable>
+        )}
 
         <View style={styles.list}>
           {printers.map((printer) => {
@@ -130,6 +184,9 @@ export default function App() {
                 <View style={styles.deviceInfo}>
                   <Text style={styles.deviceName}>{printer.name}</Text>
                   <Text style={styles.deviceAddress}>{printer.address}</Text>
+                  <Text style={styles.deviceAddress}>
+                    {printer.bonded ? 'Pareado' : 'Não pareado'}
+                  </Text>
                 </View>
                 <Pressable
                   disabled={loading}
@@ -197,6 +254,13 @@ const styles = StyleSheet.create({
   deviceAddress: { marginTop: 4, color: '#6c7a89' },
   deviceButton: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 6, backgroundColor: '#1769aa' },
   disconnectButton: { backgroundColor: '#a93226' },
+  stopScanButton: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#6c7a89',
+  },
   deviceButtonText: { color: '#fff', fontWeight: '600' },
   textInput: {
     minHeight: 140,

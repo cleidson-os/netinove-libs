@@ -4,11 +4,14 @@ import type {
   BluetoothPrinter,
   BluetoothState,
   ConnectionState,
+  NetinoveThermalPrinterEvents,
 } from './NetinoveThermalPrinter.types';
 
-declare class NetinoveThermalPrinterModule extends NativeModule<Record<string, never>> {
+declare class NetinoveThermalPrinterModule extends NativeModule<NetinoveThermalPrinterEvents> {
   getBluetoothState(): Promise<BluetoothState>;
   getBondedPrinters(): Promise<BluetoothPrinter[]>;
+  startScan(timeoutMs: number): Promise<void>;
+  stopScan(): Promise<void>;
   connect(address: string): Promise<ConnectionState>;
   getConnectionState(): ConnectionState;
   write(bytes: number[], chunkSize: number, chunkDelayMs: number): Promise<void>;

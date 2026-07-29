@@ -1,6 +1,6 @@
 {
   "name": "@netinove/thermal-printer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Plain-text thermal printing over Android Bluetooth Classic for Expo and React Native",
   "main": "build/index.js",
   "types": "build/index.d.ts",

@@ -4,6 +4,23 @@ export interface BluetoothPrinter {
   bonded: boolean;
 }
 
+export type BluetoothDevice = BluetoothPrinter;
+
+export type BluetoothScanFinishReason = 'completed' | 'cancelled' | 'timeout';
+
+export interface BluetoothScanFinishedEvent {
+  reason: BluetoothScanFinishReason;
+}
+
+export type NetinoveThermalPrinterEvents = {
+  onDeviceFound(device: BluetoothDevice): void;
+  onScanFinished(event: BluetoothScanFinishedEvent): void;
+};
+
+export interface BluetoothScanSubscription {
+  remove(): void;
+}
+
 export type BluetoothState = 'unsupported' | 'disabled' | 'enabled';
 
 export interface ConnectionState {
@@ -27,6 +44,10 @@ export type ThermalPrinterErrorCode =
   | 'ERR_BT_UNAVAILABLE'
   | 'ERR_BT_DISABLED'
   | 'ERR_PERMISSION_DENIED'
+  | 'ERR_SCAN_IN_PROGRESS'
+  | 'ERR_SCAN_FAILED'
+  | 'ERR_PAIRING_FAILED'
+  | 'ERR_PAIRING_TIMEOUT'
   | 'ERR_INVALID_ADDRESS'
   | 'ERR_CONNECTION_FAILED'
   | 'ERR_NOT_CONNECTED'

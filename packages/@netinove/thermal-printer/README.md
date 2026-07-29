@@ -9,8 +9,8 @@ Plain-text thermal printing over Android Bluetooth Classic for Expo and React Na
 - A Bluetooth Classic printer with the Serial Port Profile (SPP)
 - A development build or production build; Expo Go is not supported
 
-The printer must be paired in Android settings before the library can list it. Active Bluetooth
-discovery is not implemented in version `0.1.0`.
+Nearby devices can be discovered by the library. When `connect()` receives an unpaired device, it
+asks Android to pair it before opening the connection.
 
 ## Installation
 
@@ -22,21 +22,24 @@ npm install @netinove/thermal-printer
 
 Rebuild the Android application after installing or upgrading the package because it contains
 native Kotlin code. The package manifest automatically contributes the required legacy Bluetooth
-permissions and `BLUETOOTH_CONNECT` on Android 12+.
+and location permissions, plus `BLUETOOTH_CONNECT` and `BLUETOOTH_SCAN` on Android 12+.
 
 ## Usage
 
 ```ts
 import {
+  addScanDeviceListener,
+  addScanFinishedListener,
   connect,
   disconnect,
   getBluetoothState,
-  getBondedPrinters,
-  requestBluetoothPermissions,
+  requestBluetoothScanPermissions,
+  startScan,
+  stopScan,
   writeText,
 } from '@netinove/thermal-printer';
 
-const granted = await requestBluetoothPermissions();
+const granted = await requestBluetoothScanPermissions();
 if (!granted) {
   throw new Error('Bluetooth permission denied');
 }
@@ -46,15 +49,37 @@ if (bluetoothState !== 'enabled') {
   throw new Error(`Bluetooth is ${bluetoothState}`);
 }
 
-const [printer] = await getBondedPrinters();
+const devices = new Map();
+const deviceSubscription = addScanDeviceListener(device => {
+  devices.set(device.address, device);
+});
+const finishedSubscription = addScanFinishedListener(({ reason }) => {
+  console.log(`Scan finished: ${reason}`);
+});
+
+await startScan();
+
+// Later, after selecting a device emitted by the scan:
+const printer = [...devices.values()][0];
+if (!printer) throw new Error('No printer selected');
 await connect(printer.address);
 
 try {
   await writeText('Texto corrido\nSegunda linha', { trailingLines: 3 });
 } finally {
   await disconnect();
+  deviceSubscription.remove();
+  finishedSubscription.remove();
 }
 ```
+
+`startScan()` resolves when discovery has started and does not return found devices. Subscribe
+before starting the scan. Each device is emitted through `addScanDeviceListener()`, while
+`addScanFinishedListener()` reports `completed`, `cancelled`, or `timeout`. The default timeout is
+12 seconds; pass another duration to `startScan(timeoutMs)` or call `stopScan()` to cancel.
+
+Use `requestBluetoothPermissions()` and `getBondedPrinters()` when the application only needs
+previously paired devices and does not perform discovery.
 
 `writeText` sends only text bytes and line feeds. It does not add ESC/POS initialization or
 formatting commands. For broad printer compatibility, accents are normalized to ASCII (`ação`
@@ -86,6 +111,10 @@ Native failures expose a stable `code` property:
 | `ERR_BT_UNAVAILABLE` | Android device has no Bluetooth adapter |
 | `ERR_BT_DISABLED` | Bluetooth is disabled |
 | `ERR_PERMISSION_DENIED` | Android Bluetooth permission was not granted |
+| `ERR_SCAN_IN_PROGRESS` | A discovery operation is already running |
+| `ERR_SCAN_FAILED` | Android failed to start Bluetooth discovery |
+| `ERR_PAIRING_FAILED` | Pairing was rejected, cancelled, or could not be started |
+| `ERR_PAIRING_TIMEOUT` | Pairing did not complete within 30 seconds |
 | `ERR_INVALID_ADDRESS` | Invalid Bluetooth MAC address |
 | `ERR_CONNECTION_FAILED` | RFCOMM/SPP connection failed |
 | `ERR_NOT_CONNECTED` | A write was requested without an active connection |
