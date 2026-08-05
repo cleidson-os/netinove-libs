@@ -39,7 +39,9 @@ export default function App() {
       setPrinters((current) => {
         const found = current.some((item) => item.address === device.address);
         return found
-          ? current.map((item) => (item.address === device.address ? device : item))
+          ? current.map((item) =>
+              item.address === device.address ? { ...item, ...device } : item
+            )
           : [...current, device];
       });
     });
@@ -73,7 +75,7 @@ export default function App() {
       if (bluetoothState !== 'enabled') {
         setStatus(
           bluetoothState === 'disabled'
-            ? 'Ative o Bluetooth do Android.'
+            ? 'Ative o Bluetooth do dispositivo.'
             : 'Este dispositivo não possui Bluetooth.'
         );
         return;
@@ -103,7 +105,7 @@ export default function App() {
     setStatus(
       printer.bonded
         ? `Conectando a ${printer.name}...`
-        : `Solicitando pareamento com ${printer.name}...`
+        : `Conectando a ${printer.name}...`
     );
     try {
       const connection = await connect(printer.address);
@@ -187,6 +189,29 @@ export default function App() {
                   <Text style={styles.deviceAddress}>
                     {printer.bonded ? 'Pareado' : 'Não pareado'}
                   </Text>
+                  {printer.rssi !== undefined && (
+                    <Text style={styles.deviceDiagnostic}>
+                      RSSI: {printer.rssi} dBm · anúncios: {printer.discoveryCount ?? 1} ·{' '}
+                      {printer.connectable === undefined
+                        ? 'conexão desconhecida'
+                        : printer.connectable
+                          ? 'conectável'
+                          : 'não conectável'}
+                    </Text>
+                  )}
+                  {printer.advertisedName && printer.advertisedName !== printer.name && (
+                    <Text style={styles.deviceDiagnostic}>
+                      Nome anunciado: {printer.advertisedName}
+                    </Text>
+                  )}
+                  <Text style={styles.deviceDiagnostic}>
+                    Serviços: {printer.serviceUUIDs?.length ? printer.serviceUUIDs.join(', ') : 'nenhum anunciado'}
+                  </Text>
+                  {printer.manufacturerData && (
+                    <Text selectable style={styles.deviceDiagnostic}>
+                      Fabricante: {printer.manufacturerData}
+                    </Text>
+                  )}
                 </View>
                 <Pressable
                   disabled={loading}
@@ -252,6 +277,7 @@ const styles = StyleSheet.create({
   deviceInfo: { flex: 1 },
   deviceName: { fontSize: 16, fontWeight: '600', color: '#17202a' },
   deviceAddress: { marginTop: 4, color: '#6c7a89' },
+  deviceDiagnostic: { marginTop: 4, color: '#566573', fontSize: 12 },
   deviceButton: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 6, backgroundColor: '#1769aa' },
   disconnectButton: { backgroundColor: '#a93226' },
   stopScanButton: {

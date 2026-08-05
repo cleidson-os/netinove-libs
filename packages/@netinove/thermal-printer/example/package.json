@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@netinove/thermal-printer": "file:..",
     "expo": "~53.0.27",
     "expo-constants": "~17.1.8",
     "expo-dev-client": "~5.2.4",
@@ -17,7 +18,13 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "eas:development": "eas build --profile development --platform all",
+    "eas:development:ios": "eas build --profile development --platform ios",
+    "eas:development:simulator": "eas build --profile development-simulator --platform ios",
+    "eas:preview": "eas build --profile preview --platform all",
+    "eas:preview:simulator": "eas build --profile preview-simulator --platform ios",
+    "eas:production": "eas build --profile production --platform all"
   },
   "private": true,
   "expo": {

@@ -8,7 +8,12 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.netinove.thermalprinter.example"
+      "bundleIdentifier": "com.netinove.thermalprinter.example",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Permite buscar e conectar impressoras térmicas Bluetooth.",
+        "UIBackgroundModes": ["bluetooth-central"],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,6 +27,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fb95acb7-10b0-46d5-a6cb-371540b45e91"
+      }
+    },
+    "owner": "netinove"
   }
 }

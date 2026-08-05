@@ -1,16 +1,19 @@
 # @netinove/thermal-printer
 
-Plain-text thermal printing over Android Bluetooth Classic for Expo and React Native.
+Plain-text thermal printing over Android Bluetooth Classic and iOS Bluetooth Low Energy (BLE)
+for Expo and React Native.
 
 ## Requirements
 
 - Expo SDK 53 or a compatible React Native application
-- Android 7.0 (API 24) or newer
-- A Bluetooth Classic printer with the Serial Port Profile (SPP)
+- Android 7.0 (API 24) or newer, or iOS 15.1 or newer
+- Android: a Bluetooth Classic printer with the Serial Port Profile (SPP)
+- iOS: a BLE printer exposing a writable GATT characteristic
 - A development build or production build; Expo Go is not supported
 
-Nearby devices can be discovered by the library. When `connect()` receives an unpaired device, it
-asks Android to pair it before opening the connection.
+Nearby devices can be discovered by the library. Android asks to pair unpaired Classic devices
+before opening the connection. iOS discovers BLE services and characteristics after connecting.
+Bluetooth Classic printers without BLE or Apple MFi support cannot be used from iOS.
 
 ## Installation
 
@@ -20,9 +23,26 @@ Install the package in the consumer application after it is published to the sel
 npm install @netinove/thermal-printer
 ```
 
-Rebuild the Android application after installing or upgrading the package because it contains
-native Kotlin code. The package manifest automatically contributes the required legacy Bluetooth
-and location permissions, plus `BLUETOOTH_CONNECT` and `BLUETOOTH_SCAN` on Android 12+.
+Rebuild the native application after installing or upgrading the package because it contains
+Kotlin and Swift code. The Android manifest contributes the required Bluetooth and location
+permissions. iOS applications must provide `NSBluetoothAlwaysUsageDescription` in app config:
+
+```json
+{
+  "expo": {
+    "ios": {
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Permite buscar e conectar impressoras Bluetooth.",
+        "UIBackgroundModes": ["bluetooth-central"]
+      }
+    }
+  }
+}
+```
+
+`bluetooth-central` enables CoreBluetooth state restoration, matching the initialization used by
+the iOS transport. Use a stable application bundle identifier so iOS can associate restored BLE
+state with the same app installation.
 
 ## Usage
 
@@ -78,8 +98,29 @@ before starting the scan. Each device is emitted through `addScanDeviceListener(
 `addScanFinishedListener()` reports `completed`, `cancelled`, or `timeout`. The default timeout is
 12 seconds; pass another duration to `startScan(timeoutMs)` or call `stopScan()` to cancel.
 
-Use `requestBluetoothPermissions()` and `getBondedPrinters()` when the application only needs
-previously paired devices and does not perform discovery.
+On iOS, `address` is the peripheral UUID assigned by the operating system and `bonded` is always
+`false`. On Android, `address` remains the device MAC address. `getBondedPrinters()` is Android-only
+and rejects with `ERR_PLATFORM_UNSUPPORTED` on iOS because Apple does not expose a paired-device
+list for generic BLE peripherals.
+
+Use `requestBluetoothPermissions()` and `getBondedPrinters()` on Android when the application only
+needs previously paired devices and does not perform discovery.
+
+### Selecting the iOS BLE characteristic
+
+By default, `connect(address)` discovers all services and chooses a writable characteristic,
+preferring `writeWithoutResponse` over `write`. Printers with multiple writable characteristics
+can be configured explicitly:
+
+```ts
+await connect(printer.address, {
+  serviceUUID: '18F0',
+  characteristicUUID: '2AF1',
+});
+```
+
+The two UUIDs must be provided together. Bluetooth SIG short UUIDs and canonical 128-bit UUIDs are
+accepted. These options are ignored by the unchanged Android Classic transport.
 
 `writeText` sends only text bytes and line feeds. It does not add ESC/POS initialization or
 formatting commands. For broad printer compatibility, accents are normalized to ASCII (`ação`
@@ -97,7 +138,7 @@ Both `write` and `writeText` accept:
 
 | Option | Default | Accepted natively | Description |
 | --- | ---: | ---: | --- |
-| `chunkSize` | `512` | `32`–`4096` | Number of bytes written per block |
+| `chunkSize` | `512` | `32`–`4096` | Requested bytes per block; iOS also applies the peripheral's BLE maximum |
 | `chunkDelayMs` | `30` | `0`–`500` | Delay between blocks |
 
 `writeText` also accepts `trailingLines`, limited to a maximum of 10.
@@ -108,22 +149,25 @@ Native failures expose a stable `code` property:
 
 | Code | Meaning |
 | --- | --- |
-| `ERR_BT_UNAVAILABLE` | Android device has no Bluetooth adapter |
+| `ERR_PLATFORM_UNSUPPORTED` | The operation is not exposed on the current platform |
+| `ERR_BT_UNAVAILABLE` | Bluetooth is not available |
 | `ERR_BT_DISABLED` | Bluetooth is disabled |
-| `ERR_PERMISSION_DENIED` | Android Bluetooth permission was not granted |
+| `ERR_PERMISSION_DENIED` | Bluetooth permission was not granted |
 | `ERR_SCAN_IN_PROGRESS` | A discovery operation is already running |
 | `ERR_SCAN_FAILED` | Android failed to start Bluetooth discovery |
+| `ERR_SERVICE_NOT_FOUND` | iOS could not discover the requested BLE service |
+| `ERR_CHARACTERISTIC_NOT_FOUND` | iOS could not find a writable BLE characteristic |
 | `ERR_PAIRING_FAILED` | Pairing was rejected, cancelled, or could not be started |
 | `ERR_PAIRING_TIMEOUT` | Pairing did not complete within 30 seconds |
-| `ERR_INVALID_ADDRESS` | Invalid Bluetooth MAC address |
-| `ERR_CONNECTION_FAILED` | RFCOMM/SPP connection failed |
+| `ERR_INVALID_ADDRESS` | Invalid Bluetooth MAC, peripheral UUID or BLE option |
+| `ERR_CONNECTION_FAILED` | Bluetooth connection failed |
 | `ERR_NOT_CONNECTED` | A write was requested without an active connection |
 | `ERR_EMPTY_DATA` | No bytes were provided |
 | `ERR_INVALID_BYTE` | A value outside `0`–`255` was provided |
 | `ERR_WRITE_FAILED` | The socket failed while writing |
 
-After `ERR_CONNECTION_FAILED` or `ERR_WRITE_FAILED`, the library closes and clears the current
-socket. The application may call `connect` again.
+After `ERR_CONNECTION_FAILED` or `ERR_WRITE_FAILED`, the library clears the current transport. The
+application may call `connect` again.
 
 ## Development
 
@@ -133,8 +177,42 @@ npm run lint
 npm test
 ```
 
-The Android example is located in `example/` and can be opened with:
+The example is located in `example/` and can be opened with:
 
 ```sh
 npm run open:android
+npm run open:ios
 ```
+
+BLE discovery and printing must be validated on a physical iPhone; the iOS Simulator does not
+provide a representative BLE-printer workflow.
+
+### EAS Build
+
+The example includes `eas.json` profiles for cloud builds. From the `example/` directory, install
+and authenticate the EAS CLI, then link the example to an Expo project on the first run:
+
+```sh
+npm install --global eas-cli
+eas login
+eas init
+```
+
+Build a development client for physical Android and iOS devices:
+
+```sh
+npm run eas:development
+```
+
+Other available commands are:
+
+| Command | Result |
+| --- | --- |
+| `npm run eas:development:ios` | iOS development client for a registered physical device |
+| `npm run eas:development:simulator` | iOS development client for Simulator |
+| `npm run eas:preview` | Internally distributed production-like Android and iOS builds |
+| `npm run eas:preview:simulator` | Production-like build for iOS Simulator |
+| `npm run eas:production` | Store-ready Android AAB and iOS archive |
+
+Internal iOS builds require an Apple Developer account and a registered device. Simulator builds
+validate the application but cannot validate communication with a BLE printer.

@@ -4,11 +4,13 @@ import type {
   BluetoothDevice,
   BluetoothScanFinishedEvent,
   BluetoothScanSubscription,
+  ConnectOptions,
   WriteOptions,
   WriteTextOptions,
 } from './NetinoveThermalPrinter.types';
 import NetinoveThermalPrinterModule from './NetinoveThermalPrinterModule';
 import { OperationQueue } from './OperationQueue';
+import { normalizeConnectOptions } from './connectOptions';
 import { encodePlainText } from './textEncoding';
 
 const DEFAULT_CHUNK_SIZE = 512;
@@ -17,25 +19,27 @@ const DEFAULT_SCAN_TIMEOUT_MS = 12_000;
 
 const operationQueue = new OperationQueue();
 
-function assertAndroid(): void {
-  if (Platform.OS !== 'android') {
-    throw Object.assign(new Error('Bluetooth Classic is available only on Android'), {
+function assertNativePlatform(): void {
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
+    throw Object.assign(new Error('Bluetooth printing is available only on Android and iOS'), {
       code: 'ERR_PLATFORM_UNSUPPORTED',
     });
   }
 }
 
 export async function requestBluetoothPermissions(): Promise<boolean> {
-  assertAndroid();
+  assertNativePlatform();
+  if (Platform.OS === 'ios') return NetinoveThermalPrinterModule.requestBluetoothPermissions();
   if (Number(Platform.Version) < 31) return true;
 
   const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
   return result === PermissionsAndroid.RESULTS.GRANTED;
 }
 
-/** Requests the permissions required to discover nearby Bluetooth Classic devices. */
+/** Requests the permissions required to discover nearby Bluetooth devices. */
 export async function requestBluetoothScanPermissions(): Promise<boolean> {
-  assertAndroid();
+  assertNativePlatform();
+  if (Platform.OS === 'ios') return NetinoveThermalPrinterModule.requestBluetoothPermissions();
 
   if (Number(Platform.Version) >= 31) {
     const result = await PermissionsAndroid.requestMultiple([
@@ -58,52 +62,57 @@ export async function requestBluetoothScanPermissions(): Promise<boolean> {
 }
 
 export async function getBluetoothState() {
-  assertAndroid();
+  assertNativePlatform();
   return NetinoveThermalPrinterModule.getBluetoothState();
 }
 
 export async function getBondedPrinters() {
-  assertAndroid();
+  assertNativePlatform();
   return NetinoveThermalPrinterModule.getBondedPrinters();
 }
 
 /** Starts discovery. Found devices and completion are delivered exclusively through events. */
 export async function startScan(timeoutMs = DEFAULT_SCAN_TIMEOUT_MS): Promise<void> {
-  assertAndroid();
+  assertNativePlatform();
   await NetinoveThermalPrinterModule.startScan(timeoutMs);
 }
 
 export async function stopScan(): Promise<void> {
-  assertAndroid();
+  assertNativePlatform();
   await NetinoveThermalPrinterModule.stopScan();
 }
 
 export function addScanDeviceListener(
   listener: (device: BluetoothDevice) => void
 ): BluetoothScanSubscription {
-  assertAndroid();
+  assertNativePlatform();
   return NetinoveThermalPrinterModule.addListener('onDeviceFound', listener);
 }
 
 export function addScanFinishedListener(
   listener: (event: BluetoothScanFinishedEvent) => void
 ): BluetoothScanSubscription {
-  assertAndroid();
+  assertNativePlatform();
   return NetinoveThermalPrinterModule.addListener('onScanFinished', listener);
 }
 
-export function connect(address: string) {
-  assertAndroid();
-  return operationQueue.enqueue(() => NetinoveThermalPrinterModule.connect(address));
+export function connect(address: string, options: ConnectOptions = {}) {
+  assertNativePlatform();
+  const normalizedOptions = normalizeConnectOptions(options);
+  return operationQueue.enqueue(() =>
+    Platform.OS === 'ios'
+      ? NetinoveThermalPrinterModule.connect(address, normalizedOptions)
+      : NetinoveThermalPrinterModule.connect(address)
+  );
 }
 
 export function getConnectionState() {
-  assertAndroid();
+  assertNativePlatform();
   return NetinoveThermalPrinterModule.getConnectionState();
 }
 
 export function write(bytes: number[], options: WriteOptions = {}): Promise<void> {
-  assertAndroid();
+  assertNativePlatform();
   const chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE;
   const chunkDelayMs = options.chunkDelayMs ?? DEFAULT_CHUNK_DELAY_MS;
   return operationQueue.enqueue(() =>
@@ -118,7 +127,7 @@ export function writeText(text: string, options: WriteTextOptions = {}): Promise
 }
 
 export function disconnect(): Promise<void> {
-  assertAndroid();
+  assertNativePlatform();
   return operationQueue.enqueue(() => NetinoveThermalPrinterModule.disconnect());
 }
 

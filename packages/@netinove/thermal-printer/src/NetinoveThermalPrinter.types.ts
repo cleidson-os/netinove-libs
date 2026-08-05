@@ -2,6 +2,13 @@ export interface BluetoothPrinter {
   address: string;
   name: string;
   bonded: boolean;
+  /** iOS BLE diagnostics. These fields are omitted by transports that do not expose them. */
+  rssi?: number;
+  advertisedName?: string;
+  serviceUUIDs?: string[];
+  manufacturerData?: string;
+  connectable?: boolean;
+  discoveryCount?: number;
 }
 
 export type BluetoothDevice = BluetoothPrinter;
@@ -28,6 +35,13 @@ export interface ConnectionState {
   address: string | null;
 }
 
+export interface ConnectOptions {
+  /** BLE service UUID used on iOS. Must be provided together with characteristicUUID. */
+  serviceUUID?: string;
+  /** Writable BLE characteristic UUID used on iOS. Must be provided together with serviceUUID. */
+  characteristicUUID?: string;
+}
+
 export interface WriteOptions {
   chunkSize?: number;
   chunkDelayMs?: number;
@@ -46,6 +60,8 @@ export type ThermalPrinterErrorCode =
   | 'ERR_PERMISSION_DENIED'
   | 'ERR_SCAN_IN_PROGRESS'
   | 'ERR_SCAN_FAILED'
+  | 'ERR_SERVICE_NOT_FOUND'
+  | 'ERR_CHARACTERISTIC_NOT_FOUND'
   | 'ERR_PAIRING_FAILED'
   | 'ERR_PAIRING_TIMEOUT'
   | 'ERR_INVALID_ADDRESS'
