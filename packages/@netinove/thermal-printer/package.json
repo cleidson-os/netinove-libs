@@ -1,6 +1,6 @@
 {
   "name": "@netinove/thermal-printer",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Plain-text thermal printing over Android Bluetooth Classic and iOS BLE for Expo and React Native",
   "main": "build/index.js",
   "react-native": "src/index.ts",
@@ -68,7 +68,7 @@
     ]
   },
   "peerDependencies": {
-    "expo": "^53.0.0",
+    "expo": ">=53 <56",
     "react": "^19.0.0",
     "react-native": ">=0.79.0 <0.80.0"
   }

@@ -10,6 +10,7 @@ import type {
 
 declare class NetinoveThermalPrinterModule extends NativeModule<NetinoveThermalPrinterEvents> {
   getBluetoothState(): Promise<BluetoothState>;
+  turnOnBluetooth(): Promise<boolean>;
   requestBluetoothPermissions(): Promise<boolean>;
   getBondedPrinters(): Promise<BluetoothPrinter[]>;
   startScan(timeoutMs: number): Promise<void>;

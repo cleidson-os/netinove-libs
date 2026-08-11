@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1785960376207" clover="3.2.0">
+  <project timestamp="1785960376208" name="All files">
+    <metrics statements="18" coveredstatements="18" conditionals="14" coveredconditionals="14" methods="6" coveredmethods="6" elements="38" coveredelements="38" complexity="0" loc="18" ncloc="18" packages="1" files="3" classes="3"/>
+    <file name="OperationQueue.ts" path="/Users/netinove/Documents/dev/consig/netinove-libs/packages/@netinove/thermal-printer/src/OperationQueue.ts">
+      <metrics statements="6" coveredstatements="6" conditionals="0" coveredconditionals="0" methods="3" coveredmethods="3"/>
+      <line num="2" count="2" type="stmt"/>
+      <line num="5" count="4" type="stmt"/>
+      <line num="6" count="4" type="stmt"/>
+      <line num="7" count="3" type="stmt"/>
+      <line num="8" count="1" type="stmt"/>
+      <line num="10" count="4" type="stmt"/>
+    </file>
+    <file name="connectOptions.ts" path="/Users/netinove/Documents/dev/consig/netinove-libs/packages/@netinove/thermal-printer/src/connectOptions.ts">
+      <metrics statements="8" coveredstatements="8" conditionals="13" coveredconditionals="13" methods="1" coveredmethods="1"/>
+      <line num="4" count="1" type="stmt"/>
+      <line num="7" count="4" type="stmt"/>
+      <line num="8" count="4" type="stmt"/>
+      <line num="10" count="4" type="cond" truecount="2" falsecount="0"/>
+      <line num="11" count="1" type="stmt"/>
+      <line num="16" count="3" type="cond" truecount="2" falsecount="0"/>
+      <line num="20" count="1" type="stmt"/>
+      <line num="23" count="2" type="cond" truecount="4" falsecount="0"/>
+    </file>
+    <file name="textEncoding.ts" path="/Users/netinove/Documents/dev/consig/netinove-libs/packages/@netinove/thermal-printer/src/textEncoding.ts">
+      <metrics statements="4" coveredstatements="4" conditionals="1" coveredconditionals="1" methods="2" coveredmethods="2"/>
+      <line num="8" count="3" type="stmt"/>
+      <line num="14" count="3" type="stmt"/>
+      <line num="16" count="3" type="stmt"/>
+      <line num="17" count="15" type="stmt"/>
+    </file>
+  </project>
+</coverage>

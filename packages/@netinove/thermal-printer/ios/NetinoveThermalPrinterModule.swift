@@ -139,6 +139,13 @@ public final class NetinoveThermalPrinterModule: Module {
       }
     }
 
+    AsyncFunction("turnOnBluetooth") { (promise: Promise) in
+      self.onMain {
+        self.ensureCentralManager()
+        promise.resolve(self.centralManager?.state == .poweredOn)
+      }
+    }
+
     AsyncFunction("getBondedPrinters") { (promise: Promise) in
       promise.reject(
         "ERR_PLATFORM_UNSUPPORTED",
@@ -252,7 +259,9 @@ public final class NetinoveThermalPrinterModule: Module {
         delegate: bluetoothDelegate,
         queue: DispatchQueue.main,
         options: [
-          CBCentralManagerOptionShowPowerAlertKey: false,
+          // iOS does not expose an API that changes the radio state. This asks the system to show
+          // its standard Bluetooth power alert when an operation creates the central manager.
+          CBCentralManagerOptionShowPowerAlertKey: true,
           CBCentralManagerOptionRestoreIdentifierKey: "netinove-thermal-printer-ble"
         ]
       )

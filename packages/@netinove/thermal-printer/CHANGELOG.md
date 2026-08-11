@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 - 2026-08-10
+
+### 💡 Others
+
+- Expanded Expo peer compatibility to include SDKs 53, 54 and 55.
+
 ## 0.3.0 - 2026-08-05
 
 ### 🛠 Breaking changes

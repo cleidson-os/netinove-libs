@@ -66,14 +66,40 @@ export async function getBluetoothState() {
   return NetinoveThermalPrinterModule.getBluetoothState();
 }
 
+/**
+ * Requests that Bluetooth be turned on. Android shows the system activation dialog; iOS shows
+ * the system Bluetooth power alert because Apple does not allow apps to change the radio state.
+ */
+export async function turnOnBluetooth(): Promise<boolean> {
+  assertNativePlatform();
+  return NetinoveThermalPrinterModule.turnOnBluetooth();
+}
+
+async function ensureBluetoothEnabled(): Promise<void> {
+  const state = await getBluetoothState();
+  if (state === 'enabled') return;
+  if (state === 'unsupported') {
+    throw Object.assign(new Error('Bluetooth is not available on this device'), {
+      code: 'ERR_BT_UNAVAILABLE',
+    });
+  }
+
+  const enabled = await turnOnBluetooth();
+  if (!enabled) {
+    throw Object.assign(new Error('Bluetooth is disabled'), { code: 'ERR_BT_DISABLED' });
+  }
+}
+
 export async function getBondedPrinters() {
   assertNativePlatform();
+  await ensureBluetoothEnabled();
   return NetinoveThermalPrinterModule.getBondedPrinters();
 }
 
 /** Starts discovery. Found devices and completion are delivered exclusively through events. */
 export async function startScan(timeoutMs = DEFAULT_SCAN_TIMEOUT_MS): Promise<void> {
   assertNativePlatform();
+  await ensureBluetoothEnabled();
   await NetinoveThermalPrinterModule.startScan(timeoutMs);
 }
 
@@ -99,11 +125,12 @@ export function addScanFinishedListener(
 export function connect(address: string, options: ConnectOptions = {}) {
   assertNativePlatform();
   const normalizedOptions = normalizeConnectOptions(options);
-  return operationQueue.enqueue(() =>
-    Platform.OS === 'ios'
+  return operationQueue.enqueue(async () => {
+    await ensureBluetoothEnabled();
+    return Platform.OS === 'ios'
       ? NetinoveThermalPrinterModule.connect(address, normalizedOptions)
-      : NetinoveThermalPrinterModule.connect(address)
-  );
+      : NetinoveThermalPrinterModule.connect(address);
+  });
 }
 
 export function getConnectionState() {
@@ -115,9 +142,10 @@ export function write(bytes: number[], options: WriteOptions = {}): Promise<void
   assertNativePlatform();
   const chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE;
   const chunkDelayMs = options.chunkDelayMs ?? DEFAULT_CHUNK_DELAY_MS;
-  return operationQueue.enqueue(() =>
-    NetinoveThermalPrinterModule.write(bytes, chunkSize, chunkDelayMs)
-  );
+  return operationQueue.enqueue(async () => {
+    await ensureBluetoothEnabled();
+    return NetinoveThermalPrinterModule.write(bytes, chunkSize, chunkDelayMs);
+  });
 }
 
 /** Sends plain ASCII text without adding ESC/POS formatting commands. */

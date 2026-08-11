@@ -52,7 +52,6 @@ import {
   addScanFinishedListener,
   connect,
   disconnect,
-  getBluetoothState,
   requestBluetoothScanPermissions,
   startScan,
   stopScan,
@@ -62,11 +61,6 @@ import {
 const granted = await requestBluetoothScanPermissions();
 if (!granted) {
   throw new Error('Bluetooth permission denied');
-}
-
-const bluetoothState = await getBluetoothState();
-if (bluetoothState !== 'enabled') {
-  throw new Error(`Bluetooth is ${bluetoothState}`);
 }
 
 const devices = new Map();
@@ -97,6 +91,12 @@ try {
 before starting the scan. Each device is emitted through `addScanDeviceListener()`, while
 `addScanFinishedListener()` reports `completed`, `cancelled`, or `timeout`. The default timeout is
 12 seconds; pass another duration to `startScan(timeoutMs)` or call `stopScan()` to cancel.
+
+Operations that require Bluetooth (`startScan`, `getBondedPrinters`, `connect`, and `write`) check
+the radio state automatically. Android displays its system activation dialog and continues after
+the user accepts. iOS displays the system Bluetooth power alert; because iOS cannot turn the radio
+on for an app, retry the operation after enabling Bluetooth. `turnOnBluetooth()` is also exported
+for applications that want to request activation before one of these operations.
 
 On iOS, `address` is the peripheral UUID assigned by the operating system and `bonded` is always
 `false`. On Android, `address` remains the device MAC address. `getBondedPrinters()` is Android-only
@@ -152,6 +152,7 @@ Native failures expose a stable `code` property:
 | `ERR_PLATFORM_UNSUPPORTED` | The operation is not exposed on the current platform |
 | `ERR_BT_UNAVAILABLE` | Bluetooth is not available |
 | `ERR_BT_DISABLED` | Bluetooth is disabled |
+| `ERR_BT_ENABLE_IN_PROGRESS` | An Android Bluetooth activation request is already open |
 | `ERR_PERMISSION_DENIED` | Bluetooth permission was not granted |
 | `ERR_SCAN_IN_PROGRESS` | A discovery operation is already running |
 | `ERR_SCAN_FAILED` | Android failed to start Bluetooth discovery |

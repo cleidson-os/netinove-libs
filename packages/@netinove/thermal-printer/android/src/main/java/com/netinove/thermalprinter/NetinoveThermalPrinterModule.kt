@@ -1,6 +1,7 @@
 package com.netinove.thermalprinter
 
 import android.Manifest
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -14,8 +15,10 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import com.facebook.react.bridge.BaseActivityEventListener
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.Promise
 import java.io.IOException
 import java.util.UUID
 
@@ -43,6 +46,16 @@ class NetinoveThermalPrinterModule : Module() {
       }
     }
   }
+  private var enableBluetoothPromise: Promise? = null
+  private val activityEventListener = object : BaseActivityEventListener() {
+    override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
+      if (requestCode != REQUEST_ENABLE_BLUETOOTH) return
+      val promise = enableBluetoothPromise ?: return
+      enableBluetoothPromise = null
+      appContext.reactContext?.removeActivityEventListener(this)
+      promise.resolve(resultCode == Activity.RESULT_OK || adapterOrNull()?.isEnabled == true)
+    }
+  }
 
   override fun definition() = ModuleDefinition {
     Name("NetinoveThermalPrinter")
@@ -56,6 +69,30 @@ class NetinoveThermalPrinterModule : Module() {
           checkConnectPermission()
           if (bluetooth.isEnabled) "enabled" else "disabled"
         }
+      }
+    }
+
+    AsyncFunction("turnOnBluetooth") { promise: Promise ->
+      checkConnectPermission()
+      val bluetooth = adapterOrNull()
+        ?: throw ThermalPrinterException("ERR_BT_UNAVAILABLE", "Dispositivo sem Bluetooth")
+      if (bluetooth.isEnabled) {
+        promise.resolve(true)
+        return@AsyncFunction
+      }
+      if (enableBluetoothPromise != null) {
+        throw ThermalPrinterException("ERR_BT_ENABLE_IN_PROGRESS", "Uma solicitação de ativação já está em andamento")
+      }
+      val activity = appContext.currentActivity
+        ?: throw ThermalPrinterException("ERR_CONTEXT_UNAVAILABLE", "Activity Android indisponível")
+      enableBluetoothPromise = promise
+      appContext.reactContext?.addActivityEventListener(activityEventListener)
+      try {
+        activity.startActivityForResult(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), REQUEST_ENABLE_BLUETOOTH)
+      } catch (error: Exception) {
+        enableBluetoothPromise = null
+        appContext.reactContext?.removeActivityEventListener(activityEventListener)
+        throw ThermalPrinterException("ERR_BT_UNAVAILABLE", "Não foi possível solicitar a ativação do Bluetooth", error)
       }
     }
 
@@ -200,6 +237,9 @@ class NetinoveThermalPrinterModule : Module() {
     }
 
     OnDestroy {
+      enableBluetoothPromise?.resolve(false)
+      enableBluetoothPromise = null
+      appContext.reactContext?.removeActivityEventListener(activityEventListener)
       finishScanWithoutEvent(cancelDiscovery = true)
       closeSocket()
     }
@@ -370,6 +410,7 @@ class NetinoveThermalPrinterModule : Module() {
   }
 
   companion object {
+    private const val REQUEST_ENABLE_BLUETOOTH = 41_082
     private const val PAIRING_TIMEOUT_MS = 30_000L
     private const val PAIRING_POLL_INTERVAL_MS = 250L
     private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
