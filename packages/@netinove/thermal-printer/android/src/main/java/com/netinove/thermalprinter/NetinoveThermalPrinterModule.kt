@@ -239,7 +239,11 @@ class NetinoveThermalPrinterModule : Module() {
       }
     }
 
-    AsyncFunction("disconnect") {
+    AsyncFunction("disconnect") { drainDelayMs: Int ->
+      val safeDrainDelay = drainDelayMs.coerceIn(0, MAX_DRAIN_DELAY_MS).toLong()
+      if (safeDrainDelay > 0 && socket?.isConnected == true) {
+        Thread.sleep(safeDrainDelay)
+      }
       closeSocket()
     }
 
@@ -419,6 +423,7 @@ class NetinoveThermalPrinterModule : Module() {
     private const val REQUEST_ENABLE_BLUETOOTH = 41_082
     private const val PAIRING_TIMEOUT_MS = 30_000L
     private const val PAIRING_POLL_INTERVAL_MS = 250L
+    private const val MAX_DRAIN_DELAY_MS = 10_000
     private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     private val BLUETOOTH_ADDRESS = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
   }

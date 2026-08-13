@@ -52,6 +52,14 @@ export interface WriteTextOptions extends WriteOptions {
   trailingLines?: number;
 }
 
+export interface DisconnectOptions {
+  /**
+   * Android-only delay before closing the Bluetooth socket, allowing queued RFCOMM data to drain.
+   * Values are limited natively to 0–10,000 ms. Defaults to zero.
+   */
+  drainDelayMs?: number;
+}
+
 export type ThermalPrinterErrorCode =
   | 'ERR_PLATFORM_UNSUPPORTED'
   | 'ERR_CONTEXT_UNAVAILABLE'

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### 🐛 Bug fixes
+
+- Added the Android-only `disconnect({ drainDelayMs })` option to keep the RFCOMM socket open briefly
+  while pending print bytes drain before closing the connection.
+
 ## 1.0.0 - 2026-08-11
 
 ### 🛠 Breaking changes

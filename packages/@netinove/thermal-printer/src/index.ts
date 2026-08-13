@@ -5,6 +5,7 @@ import type {
   BluetoothScanFinishedEvent,
   BluetoothScanSubscription,
   ConnectOptions,
+  DisconnectOptions,
   WriteOptions,
   WriteTextOptions,
 } from './NetinoveThermalPrinter.types';
@@ -154,9 +155,16 @@ export function writeText(text: string, options: WriteTextOptions = {}): Promise
   return write(encodePlainText(text, trailingLines), writeOptions);
 }
 
-export function disconnect(): Promise<void> {
+export function disconnect(options: DisconnectOptions = {}): Promise<void> {
   assertNativePlatform();
-  return operationQueue.enqueue(() => NetinoveThermalPrinterModule.disconnect());
+  const drainDelayMs = Number.isFinite(options.drainDelayMs)
+    ? Math.max(0, Math.min(Math.trunc(options.drainDelayMs ?? 0), 10_000))
+    : 0;
+  return operationQueue.enqueue(() =>
+    Platform.OS === 'android'
+      ? NetinoveThermalPrinterModule.disconnect(drainDelayMs)
+      : NetinoveThermalPrinterModule.disconnect()
+  );
 }
 
 export default NetinoveThermalPrinterModule;

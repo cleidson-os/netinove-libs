@@ -81,11 +81,17 @@ await connect(printer.address);
 try {
   await writeText('Texto corrido\nSegunda linha', { trailingLines: 3 });
 } finally {
-  await disconnect();
+  await disconnect({ drainDelayMs: 2_000 });
   deviceSubscription.remove();
   finishedSubscription.remove();
 }
 ```
+
+On Android, `disconnect({ drainDelayMs })` keeps the RFCOMM socket open for the requested interval
+before closing it. This can prevent the end of a print job from being discarded on devices whose
+Bluetooth stack still has queued bytes after `write` resolves. The value is limited to 10 seconds
+and defaults to zero. Prefer keeping the connection open between print jobs; use a drain delay only
+when the application must disconnect immediately after printing. The option is ignored on iOS.
 
 `startScan()` resolves when discovery has started and does not return found devices. Subscribe
 before starting the scan. Each device is emitted through `addScanDeviceListener()`, while

@@ -18,7 +18,7 @@ declare class NetinoveThermalPrinterModule extends NativeModule<NetinoveThermalP
   connect(address: string, options?: ConnectOptions): Promise<ConnectionState>;
   getConnectionState(): ConnectionState;
   write(bytes: number[], chunkSize: number, chunkDelayMs: number): Promise<void>;
-  disconnect(): Promise<void>;
+  disconnect(drainDelayMs?: number): Promise<void>;
 }
 
 export default requireNativeModule<NetinoveThermalPrinterModule>('NetinoveThermalPrinter');
