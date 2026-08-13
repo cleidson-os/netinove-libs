@@ -8,6 +8,8 @@ import {
   startScan,
   stopScan,
   writeText,
+  write,
+  encodePlainText,
   type BluetoothPrinter,
 } from '@netinove/thermal-printer';
 import { useEffect, useState } from 'react';
@@ -145,7 +147,14 @@ export default function App() {
     setLoading(true);
     setStatus('Enviando texto...');
     try {
-      await writeText(text, { trailingLines: 3 });
+      const bytes = encodePlainText(text, 3);
+      const pontoDoCorte = 50;
+
+      await write(bytes.slice(0, pontoDoCorte), {
+        chunkSize: 512,
+        chunkDelayMs: 30,
+      });
+      // await writeText(text, { trailingLines: 3 });
       setStatus('Texto enviado com sucesso.');
     } catch (error) {
       setStatus(errorMessage(error));

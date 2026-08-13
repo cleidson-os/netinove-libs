@@ -4,13 +4,13 @@ plugins {
 }
 
 group = 'com.netinove.thermalprinter'
-version = '0.2.0'
+version = '1.0.0'
 
 android {
   namespace "com.netinove.thermalprinter"
   defaultConfig {
-    versionCode 2
-    versionName "0.2.0"
+    versionCode 3
+    versionName "1.0.0"
   }
   lintOptions {
     abortOnError false

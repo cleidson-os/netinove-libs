@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.0 - 2026-08-11
+
+### 🛠 Breaking changes
+
+- Updated the development and example applications to Expo SDK 54, React Native 0.81 and React 19.1.
+- Limited the declared Expo compatibility range to the SDK 53 and SDK 54 versions covered by the package peer dependencies.
+
+### 🐛 Bug fixes
+
+- Replaced the legacy React Native activity event listener with the Expo Modules `OnActivityResult` lifecycle hook on Android.
+
+### 💡 Others
+
+- Promoted the package to the stable 1.0.0 release.
+
 ## 0.3.1 - 2026-08-10
 
 ### 💡 Others

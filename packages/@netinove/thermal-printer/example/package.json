@@ -4,15 +4,15 @@
   "main": "index.ts",
   "dependencies": {
     "@netinove/thermal-printer": "file:..",
-    "expo": "~53.0.27",
-    "expo-constants": "~17.1.8",
-    "expo-dev-client": "~5.2.4",
-    "react": "19.0.0",
-    "react-native": "0.79.6"
+    "expo": "~54.0.36",
+    "expo-constants": "~18.0.13",
+    "expo-dev-client": "~6.0.21",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   },
   "devDependencies": {
-    "@types/react": "~19.0.10",
-    "typescript": "~5.8.3"
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
   },
   "scripts": {
     "start": "expo start",
