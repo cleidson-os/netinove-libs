@@ -13,3 +13,28 @@ packages/*/*/example/android/.gradle/
 packages/*/*/example/android/build/
 packages/*/*/example/android/app/build/
 packages/*/*/example/node_modules/
+
+# Test artifacts
+coverage/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Tool caches
+.eslintcache
+*.tsbuildinfo
+
+# Package artifacts
+*.tgz
+
+# Signing keys and certificates
+*.keystore
+*.jks
+*.p8
+*.p12
+*.pem
+*.key
+*.mobileprovision
